@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--dowloand libreary-->
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <!--connect css to html-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!--creat head logo-->
+    <link rel="icon" type="image/png" href="logo.png">
+    <!--title-->
+    <title>ASSO</title>
+</head>
+<body>
+
+    <canvas id="matrix"></canvas>
+
+
+    <header>
+        <img src="{{ url_for('static', filename='logo.png') }}" alt="logo">
+        <ul>
+            <li><a href="#chatroom">chatroom</a></li>
+        </ul>
+    </header>
+
+
+    <section id="chatroom">
+        <h1>Chatroom</h1>
+        <p>Welcome to the chat!</p>
+
+        <div id="chat" style="height:300px;overflow:auto;border:1px solid #000;margin-bottom:10px;"></div>
+
+        <form id="chat-form">
+            <input id="username" placeholder="Your name" />
+            <textarea name="message" id="msg" placeholder="Message" required></textarea>
+            <button type="button" onclick="sendMessage()">Send</button>
+        </form>
+    </section>
+
+
+
+<!--contact by asso-->
+    <script>
+        const socket = io();
+        const chat = document.getElementById("chat");
+
+        function addMessage(user, msg, isSystem=false){
+            const div = document.createElement("div");
+            div.textContent = `${user}: ${msg}`;
+            div.style.padding = "5px";
+            div.style.marginBottom = "5px";
+            div.style.borderRadius = "5px";
+            if(isSystem){
+                div.style.backgroundColor = "#333";
+                div.style.color = "#ccc";
+            } else {
+                div.style.backgroundColor = "#ff4d4d";
+                div.style.color = "#fff";
+            }
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+    function sendMessage(){
+            const user = document.getElementById("username").value || "Anon";
+            const msg = document.getElementById("msg").value;
+            if(msg.trim() === "") return;
+            socket.emit('send_message', {'user': user, 'msg': msg});
+            addMessage(user, msg);
+            document.getElementById("msg").value = "";
+        }
+
+        socket.on('message', (data) => {
+            addMessage(data.user, data.msg, data.user === "System");
+        });
+
+        window.onload = () => {
+            const user = document.getElementById("username").value || "Anon";
+            socket.emit('send_message', {'user': 'System', 'msg': `${user} joined the chat`});
+        };
+    </script>
+
+
+<!--matrix effect by asso-->
+    <script>
+        const canvas = document.getElementById("matrix");
+        const ctx = canvas.getContext("2d");
+
+        function resizeCanvas() {
+            canvas.height = window.innerHeight;
+            canvas.width = window.innerWidth;
+        }
+        resizeCanvas();
+        window.addEventListener("resize", resizeCanvas);
+
+        const letters = "01ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const fontSize = 16;
+        let columns = canvas.width / fontSize;
+
+        let drops = [];
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+
+        function draw() {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.05)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "#ff0000";
+            ctx.font = fontSize + "px monospace";
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = letters[Math.floor(Math.random() * letters.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.95) {
+                    drops[i] = 0;
+                }
+
+                drops[i]++;
+            }
+        }
+
+        setInterval(draw, 33);
+    </script>
+
+</body>
+</html>
